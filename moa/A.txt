@@ -1,0 +1,66 @@
+5  1  2  3 
+9  6  7  4  
+13 10 11 8 
+0 14 15 12
+
+5  1  2  3
+9  6  7  4
+0 10 11  8
+13 14 15 12
+
+g(n) -> custo do menor caminho entre o inicial e qualquer n
+h(n) -> heuristica
+f(n) -> g(n) + h(n)  
+
+A: Estados abertos
+F: Estados fechados 
+S: estados iniciais
+T: estados finais
+P(s): pai de s
+L(v): sucessores de v
+
+Entrada: 
+    s -> estado inicial
+    t: estado ou conjunto final
+Saída: 
+    caminho da solução
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	int tab[4][4] = {5,1,2,3,9,6,7,4,0,10,11,8,13,14,15,12};
+	u.distInicio = 0;
+	u.distFinal = h1(u.tabuleiro);
+	GeraSucessor(u, list);
+
+	
+	for(Vertice &x: list){
+		x.distFinal = h1(x.tabuleiro);
+		x.print();
+		cout << " ============" <<endl;
+	}
+
+	list.push_back(Vertice(tab,0,u));
+	int aux;
+	for(Vertice &x: list){
+		aux = comparaVertices(list, x);
+		if(aux != -1){
+			x.print();
+		}
+		
+	}
