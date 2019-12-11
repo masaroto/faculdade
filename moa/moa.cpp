@@ -2,9 +2,10 @@
 #include <vector>
 #include <string> 
 #include <assert.h>
+#include <unordered_map> 
+#include <queue>
+#include <cstdlib>
 using namespace std;
-
-
 
 class Vertice {
 public:
@@ -13,7 +14,6 @@ public:
 	int distFinal;
 	Vertice *pai;
 	vector<Vertice> adj;
-	bool pertenceLista;
 	int i;
 	int j;
 public:
@@ -29,7 +29,6 @@ public:
 				 }
 		 	}
 		 }
-		pertenceLista = false;
 	}
 	Vertice(int tabela[4][4],int ini, Vertice u){
 
@@ -42,7 +41,6 @@ public:
 				 }
 		 	}
 		 } 
-		pertenceLista = false;
 		distInicio = ini;
 		pai = &u;
 	}
@@ -67,56 +65,29 @@ public:
 	}	
 };
 
-int minElement(vector<Vertice> A){
-	int min, i, aux = 0,aux2 = A.size();
-	
-	min = A[0].distInicio + A[0].distFinal;
-	for(i = 0; i < aux2; i ++){
-		int f = A[i].distInicio + A[i].distFinal;
-		// A[i].print();	
-		if(f<min){
-			min = f;
-			aux = i;
+
+bool operator<(const Vertice &u, const Vertice &v) {
+	int UFinal = u.distInicio + u.distFinal, VFinal = v.distInicio + v.distFinal;
+	return UFinal > VFinal;
+}
+
+
+string key(int tab[4][4]){
+	string key = "";
+	for (int i = 0; i < 4; i++){
+		for(int j = 0; j < 4; j++){
+			key += to_string(tab[i][j]);
 		}
 	}
-
-	return aux;
-
+	return key;
 }
 
 void swap (Vertice &u, int i, int j, int x, int y){
-	// cout << "Antes troca " << u.tabuleiro[i][j] << " ";
-	// cout << u.tabuleiro[x][y] << endl;
 	int aux;
 	aux = u.tabuleiro[i][j];
 	u.tabuleiro[i][j] = u.tabuleiro[x][y];
 	u.tabuleiro[x][y] = aux;
 
-	// cout << "Depois troca " << u.tabuleiro[i][j] << " ";
-	// cout << u.tabuleiro[x][y] << endl;
-}
-
-int comparaMatriz(int m1[4][4],int m2[4][4]){
-	for(int i = 0; i < 4; i++){
-		for(int j = 0; j < 4; j++){
-			if(m1[i][j] != m2[i][j]){
-				return 0;
-			}
-		}
-	}
-	return 1;
-}
-
-int comparaVertices(vector<Vertice> list, Vertice u ){
-	Vertice v;
-	int aux = list.size();
-	for(int i = 0; i <aux;  i++){
-		v = list[i];
-		if(comparaMatriz(u.tabuleiro, v.tabuleiro) ){
-			return i;
-		}
-	}
-	return -1;
 }
 
 
@@ -162,7 +133,7 @@ void GeraSucessor(Vertice u, vector<Vertice> &list){
 		swap(u, u.i, u.j, u.i, u.j+1);
 	}
 }
-
+//heuristica 1
 int h1(int tabela[4][4]){
 	int num = 1;
 	int foraLugar = 0;
@@ -181,31 +152,57 @@ int h1(int tabela[4][4]){
 	return foraLugar;
 }
 
+int h3(int tab[4][4]){
+	int num, coluna, linha, soma = 0;
 
+	for (int i = 0; i < 4; i++){
+		for(int j = 0; j < 4; j++){
+			num = (tab[i][j]);
+            if(num != 0){
+                linha = num / 4;
+				//tratar caso o num esteja na ultima coluna
+                if(num % 4 == 0 ){
+                    linha = (num/4) -1;
+                }
+                
+                coluna = num - (linha * 4) - 1;
+            
+                soma += abs(i - linha) + abs(j - coluna);
+            }
+		}
+	}
+	return soma;
+}
 
 int AStar(Vertice u){
 	// g(s) -> menor dist ate inicio || h(n) -> menor dist ate final 
 
-	int achouFinal, i, matrizFinal[4][4] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0};
-	vector<Vertice> A,F,sucessores;
+	int achouFinal = 0;
+	priority_queue<Vertice> A;
+	unordered_map<string, Vertice> listaAberta, listaFechada;
 	Vertice final, v;
+	string pos;
+
+	//Inicializacao
 	u.pai = NULL;
 	u.distFinal = h1(u.tabuleiro);
 	u.distInicio = 0;
-	u.pertenceLista = true;
-	A.push_back(u);
+	A.push(u);
+	pos = key(u.tabuleiro);
+	listaAberta[pos] = u;
 
-	while(!A.empty()){
+	while(!listaAberta.empty()){
 
-		i = minElement(A);
-		v = A[i];
-		A.erase(A.begin()+i);
+		v = A.top();
+		A.pop();
+		// cout << "Pai: " << endl;
 		// v.print();
-		F.push_back(v);
-		
-		achouFinal = comparaMatriz(v.tabuleiro, matrizFinal);
-		if(achouFinal){
+		pos = key(v.tabuleiro);
+		listaFechada[pos] = v;
+
+		if(v.distFinal == 0){
 			final = v;
+			achouFinal = 1;
 			break;
 		}
 		
@@ -213,24 +210,30 @@ int AStar(Vertice u){
 		
 
 		for(Vertice &x: v.adj){
+			string SucKey = key(x.tabuleiro);
+			bool pertenceA = listaAberta.find(SucKey) != listaAberta.end();
+			bool pertenceF = listaFechada.find(SucKey) != listaFechada.end();
 			
-			int aux = comparaVertices(A,x);
-			if(aux != -1){
-				if(v.distInicio<A[aux].distInicio){
-					cout << "PINTO " << endl; 
-					A.erase(A.begin()+aux);
-					F.push_back(x);
+			if(pertenceA){
+				if(x.distInicio < listaAberta[SucKey].distInicio){
+					listaAberta.erase(SucKey);
 				}
 			}
 
-			
-			int aux2 = comparaVertices(F,x); 
-
-			if(aux == -1 && aux2 == -1){
-				x.distFinal = h1(x.tabuleiro);
-				A.push_back(x);
+			if(pertenceF){
+				if(x.distInicio < listaFechada[SucKey].distInicio){
+					listaFechada.erase(SucKey);
+				}
 			}
-
+			
+		
+			if(!pertenceA && !pertenceF){
+				x.distFinal = h3(x.tabuleiro);
+				// cout << "Sucessores: " << endl;
+				// x.print();
+				listaAberta[SucKey] = x;
+				A.push(x);
+			}
 		}
 
 	}
@@ -248,7 +251,7 @@ int AStar(Vertice u){
 
 int main(int argc, char const *argv[]){
 	vector<Vertice> list;
-	Vertice v, u = getInput();
+	Vertice u = getInput();
 	
 
 	cout << AStar(u);
