@@ -5,6 +5,7 @@
 #include <unordered_map> 
 #include <queue>
 #include <cstdlib>
+#include <time.h>
 using namespace std;
 
 class Vertice {
@@ -152,6 +153,32 @@ int h1(int tabela[4][4]){
 	return foraLugar;
 }
 
+int h2(int tab[4][4]){
+	int prox, soma = 0;
+    for (int i = 0; i < 4; i++){
+		for(int j = 0; j < 4; j++){
+			if(j == 3 && i == 3){
+                break;
+            }
+            if(tab[i][j] != 0){
+
+                prox = tab[i][j+1];
+                if(j == 3 && i != 3){
+                    prox = tab[i+1][0];
+                } else if (prox == 0){
+                    prox = 16;
+                }
+
+                if(tab[i][j] != prox - 1){
+                    soma++;
+                }
+
+            }
+		}
+    }
+
+    return soma;
+}
 int h3(int tab[4][4]){
 	int num, coluna, linha, soma = 0;
 
@@ -174,6 +201,17 @@ int h3(int tab[4][4]){
 	return soma;
 }
 
+float h4(int tab[4][4]){
+    return 0.8*h3(tab) + 0.1*h2(tab) + 0.1*h1(tab);
+}
+
+int maximo(int a, int b, int c){
+    return a > b ? (a > c ? a : c) : (b > c ? b : c);
+}
+float h5(int tab[4][4]){
+    return maximo(h1(tab), h2(tab), h3(tab));
+}
+
 int AStar(Vertice u){
 	// g(s) -> menor dist ate inicio || h(n) -> menor dist ate final 
 
@@ -181,11 +219,12 @@ int AStar(Vertice u){
 	priority_queue<Vertice> A;
 	unordered_map<string, Vertice> listaAberta, listaFechada;
 	Vertice final, v;
-	string pos;
+	string pos, SucKey;
+	bool pertenceA, pertenceF;
 
 	//Inicializacao
 	u.pai = NULL;
-	u.distFinal = h1(u.tabuleiro);
+	u.distFinal = h5(u.tabuleiro);
 	u.distInicio = 0;
 	A.push(u);
 	pos = key(u.tabuleiro);
@@ -210,23 +249,16 @@ int AStar(Vertice u){
 		
 
 		for(Vertice &x: v.adj){
-			string SucKey = key(x.tabuleiro);
-			bool pertenceA = listaAberta.find(SucKey) != listaAberta.end();
-			bool pertenceF = listaFechada.find(SucKey) != listaFechada.end();
+			SucKey = key(x.tabuleiro);
+			pertenceA = listaAberta.find(SucKey) != listaAberta.end();
+			pertenceF = listaFechada.find(SucKey) != listaFechada.end();
 			
 			if(pertenceA){
 				if(x.distInicio < listaAberta[SucKey].distInicio){
 					listaAberta.erase(SucKey);
 				}
 			}
-
-			if(pertenceF){
-				if(x.distInicio < listaFechada[SucKey].distInicio){
-					listaFechada.erase(SucKey);
-				}
-			}
-			
-		
+			pertenceA = listaAberta.find(SucKey) != listaAberta.end();
 			if(!pertenceA && !pertenceF){
 				x.distFinal = h3(x.tabuleiro);
 				// cout << "Sucessores: " << endl;
@@ -243,19 +275,22 @@ int AStar(Vertice u){
 	} else {
 		return -1;
 	}
-	
-	
-
 }
 
 
 int main(int argc, char const *argv[]){
 	vector<Vertice> list;
 	Vertice u = getInput();
-	
+	clock_t start, end;
 
-	cout << AStar(u);
-	
-	
+
+	start = clock();
+	cout << AStar(u) << endl;
+	end = clock();
+
+	double time_taken = double(end - start) / double(CLOCKS_PER_SEC); 
+    cout << "Tempo: " << time_taken; 
+    cout << " segundos " << endl;
+
 	return 0;
 }
